@@ -1,7 +1,8 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium  = require('@sparticuz/chromium');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -259,8 +260,10 @@ function applyName(str, name) {
 // ─── Screenshot Generator ─────────────────────────────────────────────────────
 async function generateScreenshot(expNumber, expEntry, studentName, outputPath) {
   const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1000, height: 700 });
@@ -469,7 +472,12 @@ app.post('/generate', async (req, res) => {
     const pdfFilename = `lab_report_${(name || 'student').replace(/\s+/g, '_')}_${Date.now()}.pdf`;
     const pdfFilePath = path.join(pdfDir, pdfFilename);
 
-    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
     const page = await browser.newPage();
     await page.setContent(fullHtml, { waitUntil: 'networkidle0', timeout: 30000 });
     // Allow fonts to fully paint before capturing PDF
