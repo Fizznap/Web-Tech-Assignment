@@ -427,21 +427,21 @@ app.post('/generate', async (req, res) => {
     /* ── Global Typography ─────────────────────────────── */
     body {
       font-family: Arial, sans-serif;
-      font-size: 12px;
+      font-size: 14px;
       margin: 0; padding: 0; color: #000;
     }
     h1, h2, h3, h4, strong, label, td, th, p {
       font-family: Arial, sans-serif;
-      font-size: 12px;
+      font-size: 14px;
     }
-    h1 { font-size: 18px; }
-    h2 { font-size: 14px; border-bottom: 2px solid #333; padding-bottom: 6px; text-align: center; }
-    h3 { font-size: 13px; color: #222; margin-top: 20px; margin-bottom: 4px; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; border-bottom: 2px solid #333; padding-bottom: 6px; text-align: center; }
+    h3 { font-size: 15px; color: #222; margin-top: 20px; margin-bottom: 4px; }
     p  { line-height: 1.65; text-align: justify; margin: 4px 0; }
     /* ── Code Blocks ─────────────────────────────────────── */
     pre, code, .code-block {
       font-family: 'Courier New', Courier, monospace;
-      font-size: 10px;
+      font-size: 12px;
     }
     pre {
       background: #f5f5f5;
@@ -457,7 +457,7 @@ app.post('/generate', async (req, res) => {
     .experiment-page { page-break-after: always; }
     .experiment-page:last-child { page-break-after: auto; }
     .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    .info-table td { padding: 2px 0; font-family: Arial, sans-serif; font-size: 12px; }
+    .info-table td { padding: 2px 0; font-family: Arial, sans-serif; font-size: 14px; }
     .output-img-wrap { text-align: center; margin: 12px 0; }
     img { max-width: 100%; border: 1px solid #ccc; border-radius: 4px; }
     .caption { font-style: italic; color: #555; text-align: center; font-size: 11px; }
@@ -494,9 +494,30 @@ app.post('/generate', async (req, res) => {
     res.json({ success: true, downloadUrl: `/download/${pdfFilename}` });
 
   } catch (err) {
-    console.error("--> [ERROR]", err);
-    res.status(500).json({ error: err.message });
+    console.error('Generate error:', err);
+    // Guard against headers already sent (e.g. crash mid-stream)
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || 'Internal server error' });
+    }
   }
+});
+
+// ─── Global Express Error Middleware ─────────────────────────────────────────
+// Catches any error passed via next(err) or thrown synchronously in middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled Express error:', err.stack);
+  if (!res.headersSent) {
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+// ─── Process-level crash guards ───────────────────────────────────────────────
+// Prevents Node from exiting silently and returning an HTML error page
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason);
 });
 
 app.listen(PORT, () => {
