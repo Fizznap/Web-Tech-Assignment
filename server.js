@@ -43,7 +43,7 @@ const experimentData = {
 <li>{{name}}'s Projects</li>
 </ul>
 <h2>5. Frames (Inline Frame)</h2>
-<iframe src="https://wikipedia.org" width="100%" height="300"></iframe>
+<iframe src="https://wikipedia.org" width="100%" height="150"></iframe>
 </body>
 </html>`
   },
@@ -266,7 +266,7 @@ async function generateScreenshot(expNumber, expEntry, studentName, outputPath) 
     headless: chromium.headless,
   });
   const page = await browser.newPage();
-  await page.setViewport({ width: 1000, height: 700 });
+  await page.setViewport({ width: 1200, height: 900 });
 
   const expNum = parseInt(expNumber);
 
@@ -274,63 +274,15 @@ async function generateScreenshot(expNumber, expEntry, studentName, outputPath) 
     // Render the actual HTML code in a browser window
     const renderedCode = applyName(expEntry.code, studentName);
     await page.setContent(renderedCode, { waitUntil: 'networkidle0', timeout: 15000 }).catch(() => {});
-    if ([4, 5].includes(expNum)) {
-      // Give JS / React a bit more time to execute
-      await new Promise(r => setTimeout(r, 2500));
-    }
+    // Wait 2s for iframes, JS, and React to render fully
+    await new Promise(r => setTimeout(r, 2000));
   } else {
-    // Exp 6: dark terminal - green text
-    // Exp 7: dark terminal - white text
-    const termText = applyName(expEntry.terminalOutput || '', studentName);
-    const textColor = expNum === 6 ? '#4af626' : '#f0f0f0';
-    const label = expNum === 6
-      ? 'node server.js'
-      : 'Router# ping 192.168.3.2';
-
-    const termHtml = `<!DOCTYPE html>
-<html>
-<head>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #1a1a1a; padding: 24px; font-family: 'Courier New', Courier, monospace; }
-  .terminal {
-    background: #0d0d0d;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  }
-  .bar {
-    display: flex; gap: 8px; margin-bottom: 18px;
-  }
-  .dot { width: 13px; height: 13px; border-radius: 50%; }
-  .red { background: #ff5f57; }
-  .yellow { background: #febc2e; }
-  .green { background: #28c840; }
-  .prompt { color: #888; font-size: 13px; margin-bottom: 12px; }
-  .prompt span { color: ${textColor}; }
-  pre {
-    color: ${textColor};
-    font-size: 14px;
-    line-height: 1.7;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-</style>
-</head>
-<body>
-<div class="terminal">
-  <div class="bar"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
-  <div class="prompt">user@lab:~$ <span>${label}</span></div>
-  <pre>${termText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-</div>
-</body>
-</html>`;
-
-    await page.setContent(termHtml, { waitUntil: 'load' });
+    // Exp 6 / 7 — terminal output (handled by inline template text, not screenshot)
+    await browser.close();
+    return;
   }
 
-  await page.screenshot({ path: outputPath });
+  await page.screenshot({ path: outputPath, fullPage: true });
   await browser.close();
 }
 
